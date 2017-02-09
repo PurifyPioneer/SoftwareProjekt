@@ -48,7 +48,7 @@ public class EntityManager {
 		return null;
 	}
 
-	public void setentityAliveAt(int x, int y) {
+	public void setEntityAliveAt(int x, int y) {
 		getEntityAt(x, y).setAlive(true);
 		;
 	}
@@ -129,7 +129,7 @@ public class EntityManager {
 	public void selectEntity(Point p) {
 		
 		int x = p.x / getEntityWidth();
-		int y = (p.y / getEntityHeight());
+		int y = p.y / getEntityHeight();
 		
 		if (!getEntityAt(x, y).isMarked()) {
 			getEntityAt(x, y).setMarked(true);

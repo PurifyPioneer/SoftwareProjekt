@@ -1,19 +1,12 @@
 package core;
 
-import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
-public class SoftwareProjekt {
+import api.DisplayFrame;
+import game.GameOfLife;
 
-	/*
-	 * Todo List:
-	 * 
-	 * Major ---> Only update relevant entities...
-	 * 
-	 * Config File (Color Dead/Alive) Add User Panel (tileCount Chooser) Clean
-	 * up code and optimize Add documentation
-	 */
+public class SoftwareProjekt {
 
 	public static void main(String[] args) {
 
@@ -28,8 +21,10 @@ public class SoftwareProjekt {
 					e.printStackTrace();
 				}
 
-				@SuppressWarnings("unused")
-				JPanel frame = new Frame(750, 750, "Software Projekt", 8, 8, 50);
+				//@SuppressWarnings("unused")
+				DisplayFrame gameFrame = new DisplayFrame();
+				
+				gameFrame.addGame(new GameOfLife(750, 750, "Game Of Life", 20, 20, 50));
 			}
 
 		});

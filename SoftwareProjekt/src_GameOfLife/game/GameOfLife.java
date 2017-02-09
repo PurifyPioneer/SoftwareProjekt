@@ -1,50 +1,27 @@
-package core;
+package game;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-
+import api.Game;
 import entity.EntityManager;
 
-@SuppressWarnings("serial")
-public class Frame extends JPanel implements Runnable, KeyListener, MouseListener, ComponentListener, MouseWheelListener {
-
-	private JFrame frame = null;
-	private Thread thread = null;
-	
-	private String title;
-	private final String threadTitle = "SoftwareProjekt";
+public class GameOfLife extends Game {
 
 	private int frameWidth;
 	private int frameHeight;
 	
 	private boolean paused = false;
-
-	private long lastTime;
-	private long thisTime;
-	private double timeSinceLastFrame;
-	private long fpsLastTime;
-	private long fpsThisTime;
-	private int fps;
-	private int fpsCounter;
-
+	
+	private int fpsLimit = 60;
+	private long lastRepaintTime;
+	
 	private long lastUpdate;
 	private long timeSinceLastUpdate;
 	private int updateTime;
@@ -53,12 +30,12 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 	private int entityCountX;
 	private int entityCountY;
 	
-	// Work in progress
-	
 	private boolean infoActive = false;
-
-	public Frame(int width, int height, String title, int tileCountX, int tileCountY, int updateTime) {
-
+	
+	
+	public GameOfLife(int width, int height, String title, int tileCountX, int tileCountY, int updateTime) {
+		setPreferredSize(new Dimension(width, height));
+		
 		setFrameWidth(width);
 		setFrameHeight(height);
 		setTitle(title);
@@ -68,40 +45,11 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 		
 		setUpdateTime(updateTime);
 		
-		this.setPreferredSize(new Dimension(getFrameWidth(), getFrameHeight()));
-
-		frame = new JFrame();
-		frame.setTitle(getTitle());
-		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		frame.getContentPane().setLayout(new BorderLayout());
-		frame.getContentPane().add(this, BorderLayout.CENTER);
-		frame.pack();
-		frame.addKeyListener(this);
-		frame.addMouseWheelListener(this);
-		this.addMouseListener(this);
-		frame.addComponentListener(this);
-		WindowListener winListener = new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				int answer = JOptionPane.showConfirmDialog(frame,
-						"Wollen sie das Programm wirklich beenden ?",
-						"Wirklich beenden ?", JOptionPane.YES_NO_OPTION,
-						JOptionPane.INFORMATION_MESSAGE);
-				if (answer == JOptionPane.YES_OPTION) {
-					System.exit(0);
-				}
-			}
-		};
-		frame.addWindowListener(winListener);
-		frame.setResizable(true);
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
-
 		initObjects();
-
+		
 		startGame();
 	}
-
+	
 	private void initObjects() {
 		setEntityManager(new EntityManager(getFrameWidth(), getFrameHeight(),
 				getTileCountX(), getTileCountX()));
@@ -127,46 +75,30 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 			g.setColor(Color.GREEN);
 			g.fillRect(5, 5, 175, 50);
 			g.setColor(Color.BLACK);
-			g.drawString(fps + " FPS", 10, 20);
+			g.drawString(getFPS() + " FPS", 10, 20);
 			g.drawString("Update Time: " + getUpdateTime() + "(ms)", 10, 35);
 			g.drawString("Running: " + !isPaused(), 10, 50);
 		}
 		
 	}
 
-	private void startGame() {
-		setThread(new Thread(this, getThreadTitle()));
-		getThread().start();
-	}
-
 	@Override
 	public void run() {
-
+		
 		setPaused(true);
-		lastTime = System.currentTimeMillis();
-		lastUpdate = System.currentTimeMillis();
-		fpsLastTime = System.currentTimeMillis();
+		long currentTime;
 
 		while (true) {
 
-			thisTime = System.currentTimeMillis();
-			timeSinceLastFrame = (thisTime - lastTime);
-
-			if (true) {
-				repaint();
-				lastTime = thisTime;
-				fpsCounter++;
-			}
-
-			fpsThisTime = System.currentTimeMillis();
-			if (fpsThisTime - fpsLastTime>= 1000) {
-				fps = fpsCounter;
-				fpsCounter = 0;
-				fpsLastTime = System.currentTimeMillis();
-			}
+			currentTime = System.currentTimeMillis();
 			
-			thisTime = System.currentTimeMillis();
-			timeSinceLastUpdate = thisTime - lastUpdate;
+			// TODO Limit power usage ?
+			if (currentTime - lastRepaintTime >= (1/60)) {
+				repaint();
+				updateFPS(currentTime);
+			}
+
+			timeSinceLastUpdate = currentTime - lastUpdate;
 			
 			if (!isPaused()) {
 				if (timeSinceLastUpdate >= updateTime) {
@@ -229,32 +161,12 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 		this.entityCountY = tileCountY;
 	}
 
-	public String getTitle() {
-		return title;
-	}
-
-	private void setTitle(String title) {
-		this.title = title;
-	}
-
 	public int getUpdateTime() {
 		return updateTime;
 	}
 
 	private void setUpdateTime(int updateTime) {
 		this.updateTime = updateTime;
-	}
-	
-	public Thread getThread() {
-		return thread;
-	}
-
-	public void setThread(Thread thread) {
-		this.thread = thread;
-	}
-	
-	public String getThreadTitle() {
-		return threadTitle;
 	}
 	
 	// ---> Listeners <---
@@ -286,9 +198,10 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		if (isPaused()) {
-			if (e.getButton() == MouseEvent.BUTTON1) {
-				getEntityManager().selectEntity(e.getPoint());
-			}
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					getEntityManager().selectEntity(e.getPoint());
+				}
+			
 		}
 	}
 
@@ -304,12 +217,12 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 
 	@Override
 	public void mousePressed(MouseEvent e) {
-		if (isPaused()) {
-			if (e.getButton() == MouseEvent.BUTTON1) {
-				getEntityManager().selectEntity(e.getPoint());
-				//Drag and Drop 
-			}
-		}
+//		if (isPaused()) {
+//			if (e.getButton() == MouseEvent.BUTTON1) {
+//				getEntityManager().selectEntity(e.getPoint());
+//				//Drag and Drop 
+//			}
+//		}
 	}
 
 	@Override
@@ -337,7 +250,7 @@ public class Frame extends JPanel implements Runnable, KeyListener, MouseListene
 	public void mouseWheelMoved(MouseWheelEvent e) {
 		if (infoActive) {
 			int i = e.getWheelRotation();
-			updateTime += (i*-1);
+			updateTime += (i*-10);
 		}
 	}
 
